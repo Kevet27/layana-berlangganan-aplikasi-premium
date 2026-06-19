@@ -331,3 +331,397 @@ if st.session_state.login:
         elif menu_admin == "Kelola Pesanan":
 
             st.header("Kelola Pesanan")
+# ======================================================
+# FITUR USER
+# ======================================================
+if st.session_state.login and st.session_state.role == "user":
+
+    # ======================================
+    # BERANDA USER
+    # ======================================
+    if menu_user == "Beranda User":
+
+        st.title("👑 Layanan Premium")
+
+        cari = st.text_input("Cari Produk")
+
+        kategori_filter = st.selectbox(
+            "Kategori",
+            [
+                "Semua",
+                "Streaming",
+                "Musik",
+                "Editing",
+                "AI",
+                "Sosmed"
+            ]
+        )
+
+        c.execute("SELECT * FROM products")
+        products = c.fetchall()
+
+        hasil = []
+
+        for p in products:
+
+            nama = p[1]
+            kategori = p[2]
+
+            cocok_nama = cari.lower() in nama.lower()
+
+            cocok_kategori = (
+                kategori_filter == "Semua"
+                or kategori_filter == kategori
+            )
+
+            if cocok_nama and cocok_kategori:
+                hasil.append(p)
+
+        col1, col2, col3 = st.columns(3)
+
+        for i, p in enumerate(hasil):
+
+            with [col1, col2, col3][i % 3]:
+
+                with st.container(border=True):
+
+                    st.subheader(p[1])
+
+                    if p[5] != "":
+
+                        lokasi = "uploads/" + p[5]
+
+                        if os.path.exists(lokasi):
+                            st.image(lokasi)
+
+                    st.write("Kategori :", p[2])
+                    st.write("Durasi :", p[3])
+                    st.write(f"Harga : Rp {p[4]:,}")
+
+                    bukti = st.file_uploader(
+                        "Upload Bukti Transfer",
+                        type=["jpg", "png", "jpeg"],
+                        key=f"file{i}"
+                    )
+
+                    if st.button(
+                            "Beli",
+                            key=f"beli{i}"):
+
+                        nama_bukti = ""
+
+                        if bukti is not None:
+
+                            nama_bukti = (
+                                st.session_state.username
+                                + "_"
+                                + bukti.name
+                            )
+
+                            with open(
+                                    os.path.join(
+                                        "uploads",
+                                        nama_bukti),
+                                    "wb"
+                            ) as f:
+                                f.write(
+                                    bukti.getbuffer()
+                                )
+
+                        c.execute(
+                            """
+                            INSERT INTO orders
+                            (
+                            username,
+                            produk,
+                            harga,
+                            status,
+                            bukti
+                            )
+                            VALUES(?,?,?,?,?)
+                            """,
+                            (
+                                st.session_state.username,
+                                p[1],
+                                p[4],
+                                "Pending",
+                                nama_bukti
+                            )
+                        )
+
+                        conn.commit()
+
+                        st.success(
+                            "Pesanan berhasil dibuat"
+                        )
+
+    # ======================================
+    # HISTORY PEMBELIAN
+    # ======================================
+    elif menu_user == "History Pembelian":
+
+        st.title("History Pembelian")
+
+        c.execute(
+            """
+            SELECT * FROM orders
+            WHERE username=?
+            """,
+            (
+                st.session_state.username,
+            )
+        )
+
+        data_order = c.fetchall()
+
+        if len(data_order) == 0:
+
+            st.info("Belum ada pembelian")
+
+        else:
+
+            for o in data_order:
+
+                with st.container(border=True):
+
+                    st.subheader(o[2])
+
+                    st.write(
+                        f"Harga : Rp {o[3]:,}"
+                    )
+
+                    st.write(
+                        "Status :", o[4]
+                    )
+
+# ======================================================
+# FITUR ADMIN
+# ======================================================
+if st.session_state.login and st.session_state.role == "admin":
+
+    # ======================================
+    # KELOLA PRODUK
+    # ======================================
+    if menu_admin == "Kelola Produk":
+
+        st.title("Kelola Produk")
+
+        tab1, tab2 = st.tabs(
+            [
+                "Tambah Produk",
+                "Daftar Produk"
+            ]
+        )
+
+        # ==================================
+        # TAMBAH PRODUK
+        # ==================================
+        with tab1:
+
+            nama = st.text_input(
+                "Nama Produk"
+            )
+
+            kategori = st.selectbox(
+                "Kategori",
+                [
+                    "Streaming",
+                    "Musik",
+                    "Editing",
+                    "AI",
+                    "Sosmed"
+                ]
+            )
+
+            durasi = st.selectbox(
+                "Durasi",
+                [
+                    "1 Minggu",
+                    "1 Bulan",
+                    "3 Bulan",
+                    "6 Bulan",
+                    "1 Tahun"
+                ]
+            )
+
+            harga = st.number_input(
+                "Harga",
+                min_value=0
+            )
+
+            gambar = st.file_uploader(
+                "Upload Gambar",
+                type=["jpg", "png", "jpeg"]
+            )
+
+            if st.button("Tambah Produk"):
+
+                nama_file = ""
+
+                if gambar is not None:
+
+                    nama_file = gambar.name
+
+                    with open(
+                            os.path.join(
+                                "uploads",
+                                nama_file),
+                            "wb"
+                    ) as f:
+                        f.write(
+                            gambar.getbuffer()
+                        )
+
+                c.execute(
+                    """
+                    INSERT INTO products
+                    (
+                    nama,
+                    kategori,
+                    durasi,
+                    harga,
+                    gambar
+                    )
+                    VALUES(?,?,?,?,?)
+                    """,
+                    (
+                        nama,
+                        kategori,
+                        durasi,
+                        harga,
+                        nama_file
+                    )
+                )
+
+                conn.commit()
+
+                st.success(
+                    "Produk berhasil ditambahkan"
+                )
+
+        # ==================================
+        # DAFTAR PRODUK
+        # ==================================
+        with tab2:
+
+            c.execute(
+                "SELECT * FROM products"
+            )
+
+            produk = c.fetchall()
+
+            for p in produk:
+
+                with st.container(border=True):
+
+                    st.subheader(p[1])
+
+                    if p[5] != "":
+
+                        lokasi = "uploads/" + p[5]
+
+                        if os.path.exists(lokasi):
+                            st.image(
+                                lokasi,
+                                width=200
+                            )
+
+                    st.write("Kategori :", p[2])
+                    st.write("Durasi :", p[3])
+                    st.write(
+                        f"Harga : Rp {p[4]:,}"
+                    )
+
+                    if st.button(
+                            "Hapus",
+                            key=f"hapus{p[0]}"):
+
+                        c.execute(
+                            """
+                            DELETE FROM products
+                            WHERE id=?
+                            """,
+                            (
+                                p[0],
+                            )
+                        )
+
+                        conn.commit()
+
+                        st.rerun()
+
+    # ======================================
+    # KELOLA PESANAN
+    # ======================================
+    elif menu_admin == "Kelola Pesanan":
+
+        st.title("Kelola Pesanan")
+
+        c.execute(
+            "SELECT * FROM orders"
+        )
+
+        semua_order = c.fetchall()
+
+        for o in semua_order:
+
+            with st.container(border=True):
+
+                st.subheader(o[2])
+
+                st.write(
+                    "Pembeli :",
+                    o[1]
+                )
+
+                st.write(
+                    f"Harga : Rp {o[3]:,}"
+                )
+
+                if o[5] != "":
+
+                    lokasi = "uploads/" + o[5]
+
+                    if os.path.exists(lokasi):
+
+                        st.image(
+                            lokasi,
+                            width=250
+                        )
+
+                status = st.selectbox(
+                    "Status",
+                    [
+                        "Pending",
+                        "Diproses",
+                        "Selesai"
+                    ],
+                    index=[
+                        "Pending",
+                        "Diproses",
+                        "Selesai"
+                    ].index(o[4]),
+                    key=f"status{o[0]}"
+                )
+
+                if st.button(
+                        "Update Status",
+                        key=f"update{o[0]}"):
+
+                    c.execute(
+                        """
+                        UPDATE orders
+                        SET status=?
+                        WHERE id=?
+                        """,
+                        (
+                            status,
+                            o[0]
+                        )
+                    )
+
+                    conn.commit()
+
+                    st.success(
+                        "Status berhasil diubah"
+                    )
