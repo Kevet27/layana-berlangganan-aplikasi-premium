@@ -348,5 +348,58 @@ if st.session_state.login:
 
                     st.rerun()
 
-        elif pilih_admin == "Kelola Pesanan":
-            st.header("Kelola Pesanan")
+       elif pilih_admin == "Kelola Pesanan":
+
+    st.header("Kelola Pesanan")
+
+    c.execute("SELECT * FROM orders")
+    semua_order = c.fetchall()
+
+    if len(semua_order) == 0:
+        st.info("Belum ada pesanan")
+
+    else:
+
+        for o in semua_order:
+
+            with st.container(border=True):
+
+                st.write("Pembeli :", o[1])
+                st.write("Produk :", o[2])
+                st.write(f"Harga : Rp {o[3]:,}")
+
+                status = st.selectbox(
+                    "Status",
+                    [
+                        "Pending",
+                        "Diproses",
+                        "Selesai"
+                    ],
+                    index=[
+                        "Pending",
+                        "Diproses",
+                        "Selesai"
+                    ].index(o[4]),
+                    key=f"status{o[0]}"
+                )
+
+                if st.button(
+                    "Update",
+                    key=f"update{o[0]}"
+                ):
+
+                    c.execute(
+                        """
+                        UPDATE orders
+                        SET status=?
+                        WHERE id=?
+                        """,
+                        (
+                            status,
+                            o[0]
+                        )
+                    )
+
+                    conn.commit()
+
+                    st.success("Status berhasil diubah")
