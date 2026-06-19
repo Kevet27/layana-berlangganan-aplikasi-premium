@@ -725,3 +725,191 @@ if st.session_state.login and st.session_state.role == "admin":
                     st.success(
                         "Status berhasil diubah"
                     )
+# =====================================================
+# CSS TAMPILAN PREMIUM
+# =====================================================
+st.markdown("""
+<style>
+
+.stApp{
+    background-color:#0E1117;
+    color:white;
+}
+
+div[data-testid="stMetric"]{
+    background-color:#1E293B;
+    padding:15px;
+    border-radius:15px;
+}
+
+div[data-testid="stVerticalBlock"]{
+    border-radius:15px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+
+# =====================================================
+# BANNER BERANDA
+# =====================================================
+if not st.session_state.login:
+
+    st.markdown("""
+    # 👑 PREMIUM STORE
+
+    ### Langganan aplikasi premium terpercaya
+
+    Netflix • Spotify • Canva Pro • ChatGPT Plus • CapCut Pro
+
+    ---
+    """)
+
+
+# =====================================================
+# INFORMASI PEMBAYARAN
+# =====================================================
+if st.session_state.login:
+
+    with st.sidebar:
+
+        st.divider()
+
+        st.subheader("Pembayaran")
+
+        st.write("""
+        Dana : 08123456789
+
+        OVO : 08123456789
+
+        BCA : 1234567890
+        """)
+
+        st.divider()
+
+        st.subheader("WhatsApp Admin")
+
+        st.link_button(
+            "Hubungi Admin",
+            "https://wa.me/628123456789"
+        )
+
+
+# =====================================================
+# EDIT PRODUK
+# =====================================================
+if st.session_state.login and st.session_state.role == "admin":
+
+    if menu_admin == "Kelola Produk":
+
+        st.divider()
+
+        st.subheader("Edit Produk")
+
+        c.execute("SELECT * FROM products")
+        semua_produk = c.fetchall()
+
+        if semua_produk:
+
+            pilihan = st.selectbox(
+                "Pilih Produk",
+                semua_produk,
+                format_func=lambda x: x[1]
+            )
+
+            nama_edit = st.text_input(
+                "Nama Produk Baru",
+                value=pilihan[1]
+            )
+
+            kategori_edit = st.text_input(
+                "Kategori",
+                value=pilihan[2]
+            )
+
+            durasi_edit = st.text_input(
+                "Durasi",
+                value=pilihan[3]
+            )
+
+            harga_edit = st.number_input(
+                "Harga",
+                value=int(pilihan[4])
+            )
+
+            if st.button("Simpan Perubahan"):
+
+                c.execute(
+                    """
+                    UPDATE products
+                    SET nama=?,
+                        kategori=?,
+                        durasi=?,
+                        harga=?
+                    WHERE id=?
+                    """,
+                    (
+                        nama_edit,
+                        kategori_edit,
+                        durasi_edit,
+                        harga_edit,
+                        pilihan[0]
+                    )
+                )
+
+                conn.commit()
+
+                st.success("Produk berhasil diperbarui")
+
+                st.rerun()
+
+
+# =====================================================
+# LAPORAN PENJUALAN
+# =====================================================
+if st.session_state.login and st.session_state.role == "admin":
+
+    if menu_admin == "Dashboard":
+
+        st.divider()
+
+        st.subheader("Laporan Penjualan")
+
+        c.execute("""
+        SELECT SUM(harga)
+        FROM orders
+        WHERE status='Selesai'
+        """)
+
+        total = c.fetchone()[0]
+
+        if total is None:
+            total = 0
+
+        st.metric(
+            "Total Pendapatan",
+            f"Rp {total:,}"
+        )
+
+        c.execute("""
+        SELECT COUNT(*)
+        FROM orders
+        WHERE status='Selesai'
+        """)
+
+        jumlah = c.fetchone()[0]
+
+        st.metric(
+            "Pesanan Selesai",
+            jumlah
+        )
+
+
+# =====================================================
+# FOOTER
+# =====================================================
+st.divider()
+
+st.caption(
+    "© 2026 Premium Store | Powered by Streamlit"
+)
