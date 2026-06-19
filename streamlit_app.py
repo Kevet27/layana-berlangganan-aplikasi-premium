@@ -1,5 +1,7 @@
 import streamlit as st
 import sqlite3
+import os
+from PIL import Image
 
 # =========================================
 # KONFIGURASI
