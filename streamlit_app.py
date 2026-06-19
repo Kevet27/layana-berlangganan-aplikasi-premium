@@ -163,11 +163,80 @@ if st.session_state.login:
         )
 
         if pilih == "Beranda User":
-            st.header("Beranda User")
 
-        elif pilih == "History Pembelian":
-            st.header("History Pembelian")
+    st.header("Layanan Premium")
 
+    c.execute("SELECT * FROM products")
+    products = c.fetchall()
+
+    if len(products) == 0:
+        st.info("Belum ada produk.")
+    else:
+
+        col1, col2, col3 = st.columns(3)
+
+        for i, p in enumerate(products):
+
+            id_produk = p[0]
+            nama = p[1]
+            kategori = p[2]
+            durasi = p[3]
+            harga = p[4]
+
+            with [col1, col2, col3][i % 3]:
+
+                st.subheader(nama)
+                st.write("Kategori :", kategori)
+                st.write("Durasi :", durasi)
+                st.write(f"Harga : Rp {harga:,}")
+
+                if st.button(
+                    f"Beli {nama}",
+                    key=f"beli_{id_produk}"
+                ):
+
+                    c.execute(
+                        """
+                        INSERT INTO orders(username,produk,harga,status)
+                        VALUES(?,?,?,?)
+                        """,
+                        (
+                            st.session_state.username,
+                            nama,
+                            harga,
+                            "Pending"
+                        )
+                    )
+
+                    conn.commit()
+
+                    st.success("Pesanan berhasil dibuat")
+
+       elif pilih == "History Pembelian":
+
+    st.header("History Pembelian")
+
+    c.execute(
+        "SELECT * FROM orders WHERE username=?",
+        (st.session_state.username,)
+    )
+
+    orders = c.fetchall()
+
+    if len(orders) == 0:
+        st.info("Belum ada pembelian.")
+
+    else:
+
+        for o in orders:
+
+            st.container(border=True)
+
+            st.write("Produk :", o[2])
+            st.write(f"Harga : Rp {o[3]:,}")
+            st.write("Status :", o[4])
+
+            st.divider()
     # ======================
     # MENU ADMIN
     # ======================
