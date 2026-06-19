@@ -255,7 +255,98 @@ if st.session_state.login:
             st.header("Dashboard Admin")
 
         elif pilih_admin == "Kelola Produk":
-            st.header("Kelola Produk")
+
+    st.header("Kelola Produk")
+
+    tab1, tab2 = st.tabs(
+        ["Tambah Produk", "Daftar Produk"]
+    )
+
+    # ====================
+    # TAMBAH PRODUK
+    # ====================
+    with tab1:
+
+        nama = st.text_input("Nama Produk")
+
+        kategori = st.selectbox(
+            "Kategori",
+            [
+                "Streaming",
+                "Musik",
+                "Editing",
+                "AI",
+                "Sosmed"
+            ]
+        )
+
+        durasi = st.selectbox(
+            "Durasi",
+            [
+                "1 Minggu",
+                "1 Bulan",
+                "3 Bulan",
+                "6 Bulan",
+                "1 Tahun"
+            ]
+        )
+
+        harga = st.number_input(
+            "Harga",
+            min_value=0
+        )
+
+        if st.button("Tambah Produk"):
+
+            c.execute(
+                """
+                INSERT INTO products(
+                nama,kategori,durasi,harga)
+                VALUES(?,?,?,?)
+                """,
+                (
+                    nama,
+                    kategori,
+                    durasi,
+                    harga
+                )
+            )
+
+            conn.commit()
+
+            st.success("Produk berhasil ditambahkan")
+
+    # ====================
+    # DAFTAR PRODUK
+    # ====================
+    with tab2:
+
+        c.execute("SELECT * FROM products")
+        data_produk = c.fetchall()
+
+        for p in data_produk:
+
+            with st.container(border=True):
+
+                st.subheader(p[1])
+
+                st.write("Kategori :", p[2])
+                st.write("Durasi :", p[3])
+                st.write(f"Harga : Rp {p[4]:,}")
+
+                if st.button(
+                    "Hapus",
+                    key=f"hapus{p[0]}"
+                ):
+
+                    c.execute(
+                        "DELETE FROM products WHERE id=?",
+                        (p[0],)
+                    )
+
+                    conn.commit()
+
+                    st.rerun()
 
         elif pilih_admin == "Kelola Pesanan":
             st.header("Kelola Pesanan")
